@@ -6,27 +6,15 @@ use std::path::PathBuf;
 use bindgen::CargoCallbacks;
 
 fn main() {
+    let lib_name = "cpp_lib";
     // This is the directory where the `c` library is located.
-    let libdir_path = PathBuf::from("cpp_lib")
+    let libdir_path = PathBuf::from(lib_name)
         // Canonicalize the path as `rustc-link-search` requires an absolute
         // path.
         .canonicalize()
         .expect("cannot canonicalize path");
 
-    // This is the path to the `c` headers file.
-    let types_headers_path = libdir_path.join("include/types.h");
-    let types_headers_path_str = types_headers_path
-        .to_str()
-        .expect("Path is not a valid string");
-
-    let functions_headers_path = libdir_path.join("include/functions.h");
-    let functions_headers_path_str = functions_headers_path
-        .to_str()
-        .expect("Path is not a valid string");
-    let export_headers_path = libdir_path.join("include/cpp_lib_export.h");
-    let export_headers_path_str = export_headers_path
-        .to_str()
-        .expect("Path is not a valid string");
+    let headers_path = "src/wrapper.h";
 
     // Tell cargo to look for shared libraries in the specified directory
     println!(
@@ -34,24 +22,23 @@ fn main() {
         libdir_path.join("lib/").to_str().unwrap()
     );
 
-    // Tell cargo to tell rustc to link our `hello` library. Cargo will
-    // automatically know it must look for a `libhello.a` file.
-    println!("cargo:rustc-link-lib=cpp_lib");
+    println!("cargo:rustc-link-lib={}", lib_name);
 
     // Tell cargo to invalidate the built crate whenever the header changes.
-    println!("cargo:rerun-if-changed={}", types_headers_path_str);
-    println!("cargo:rerun-if-changed={}", functions_headers_path_str);
-    println!("cargo:rerun-if-changed={}", export_headers_path_str);
+    println!("cargo:rerun-if-changed={}", headers_path);
+
+    let include_directory = libdir_path.join("include/");
+    let include_directory_arg = format!("-I{}", include_directory.to_str().unwrap());
+
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
+
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header(types_headers_path_str)
-        .header(functions_headers_path_str)
-        .header(export_headers_path_str)
-        .clang_arg("-Icpp_lib/include/")
+        .header(headers_path)
+        .clang_arg(include_directory_arg)
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(CargoCallbacks))
