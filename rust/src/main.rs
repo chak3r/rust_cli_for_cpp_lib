@@ -3,8 +3,8 @@
 #![allow(non_snake_case)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-fn main() {
-    println!("Hello, world!");
+
+fn sumCommand() {
     let arr1 = [1.0, 2.0, 3.0, 4.0];
     let arr2 = [5.0, 6.0, 7.0, 8.0];
     let mut result = Vec::with_capacity(arr1.len() + arr2.len());
@@ -37,4 +37,40 @@ fn main() {
         let sumOfAAndB = sum(a, b);
         println!("sum: {}", sumOfAAndB);
     }
+}
+
+fn main() {
+    println!("Hello, world!");
+
+    let cmd = clap::Command::new("command")
+        .bin_name("command")
+        .subcommand_required(true)
+        .subcommand(
+            clap::command!("sum")
+                .arg(
+                    clap::arg!(--"first-data-path" <PATH>)
+                        .value_parser(clap::value_parser!(std::path::PathBuf)),
+                )
+                .arg(
+                    clap::arg!(--"second-data-path" <PATH>)
+                        .value_parser(clap::value_parser!(std::path::PathBuf)),
+                ),
+        )
+        .subcommand(clap::command!("donothing"));
+
+    let matches = cmd.get_matches();
+    match matches.subcommand() {
+        Some(("sum", matches)) => {
+            let first_data_path = matches.get_one::<std::path::PathBuf>("first-data-path");
+            let second_data_path = matches.get_one::<std::path::PathBuf>("second-data-path");
+
+            println!("{:?}", first_data_path);
+            println!("{:?}", second_data_path);
+            sumCommand();
+        }
+        Some(("donothing", _)) => {
+            println!("do nothing");
+        }
+        _ => unreachable!("clap should ensure we don't get here"),
+    };
 }
