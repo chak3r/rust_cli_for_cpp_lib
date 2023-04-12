@@ -4,9 +4,7 @@
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-fn sumCommand() {
-    let arr1 = [1.0, 2.0, 3.0, 4.0];
-    let arr2 = [5.0, 6.0, 7.0, 8.0];
+fn sumCommand(arr1: &[f64], arr2: &[f64]) {
     let mut result = Vec::with_capacity(arr1.len() + arr2.len());
 
     result.extend_from_slice(&arr1);
@@ -61,12 +59,27 @@ fn main() {
     let matches = cmd.get_matches();
     match matches.subcommand() {
         Some(("sum", matches)) => {
-            let first_data_path = matches.get_one::<std::path::PathBuf>("first-data-path");
-            let second_data_path = matches.get_one::<std::path::PathBuf>("second-data-path");
+            let first_data_path = matches
+                .get_one::<std::path::PathBuf>("first-data-path")
+                .expect("first-data-path not presented");
+            let second_data_path = matches
+                .get_one::<std::path::PathBuf>("second-data-path")
+                .expect("second-data-path not presented");
 
-            println!("{:?}", first_data_path);
-            println!("{:?}", second_data_path);
-            sumCommand();
+            let first_data: Vec<f64> = std::fs::read_to_string(first_data_path)
+                .expect("Unable to read file")
+                .trim()
+                .split_whitespace()
+                .map(|word| word.parse().expect("Should be a f64 number"))
+                .collect();
+            let second_data: Vec<f64> = std::fs::read_to_string(second_data_path)
+                .expect("Unable to read file")
+                .trim()
+                .split_whitespace()
+                .map(|word| word.parse().expect("Should be a f64 number"))
+                .collect();
+
+            sumCommand(first_data.as_slice(), second_data.as_slice());
         }
         Some(("donothing", _)) => {
             println!("do nothing");
