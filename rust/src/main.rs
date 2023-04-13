@@ -3,8 +3,9 @@
 #![allow(non_snake_case)]
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+include!("jsonParsing.rs");
 
-fn sumCommand(arr1: &[f64], arr2: &[f64]) {
+fn sumCommand(arr1: &[f64], arr2: &[f64]) -> f64 {
     let mut result = Vec::with_capacity(arr1.len() + arr2.len());
 
     result.extend_from_slice(&arr1);
@@ -34,6 +35,8 @@ fn sumCommand(arr1: &[f64], arr2: &[f64]) {
 
         let sumOfAAndB = sum(a, b);
         println!("sum: {}", sumOfAAndB);
+
+        return sumOfAAndB;
     }
 }
 
@@ -54,9 +57,18 @@ fn main() {
                         .value_parser(clap::value_parser!(std::path::PathBuf)),
                 ),
         )
-        .subcommand(clap::command!("donothing"));
+        .subcommand(clap::command!("donothing"))
+        .arg(
+            clap::arg!(--"output-path" <PATH>)
+                .value_parser(clap::value_parser!(std::path::PathBuf)),
+        );
 
     let matches = cmd.get_matches();
+
+    let output_path = matches
+        .get_one::<std::path::PathBuf>("output-path")
+        .expect("output not presented");
+
     match matches.subcommand() {
         Some(("sum", matches)) => {
             let first_data_path = matches
@@ -66,20 +78,17 @@ fn main() {
                 .get_one::<std::path::PathBuf>("second-data-path")
                 .expect("second-data-path not presented");
 
-            let first_data: Vec<f64> = std::fs::read_to_string(first_data_path)
-                .expect("Unable to read file")
-                .trim()
-                .split_whitespace()
-                .map(|word| word.parse().expect("Should be a f64 number"))
-                .collect();
-            let second_data: Vec<f64> = std::fs::read_to_string(second_data_path)
-                .expect("Unable to read file")
-                .trim()
-                .split_whitespace()
-                .map(|word| word.parse().expect("Should be a f64 number"))
-                .collect();
+            let first_data = parseDataFromFile(first_data_path);
+            let second_data = parseDataFromFile(second_data_path);
 
-            sumCommand(first_data.as_slice(), second_data.as_slice());
+            let result_value = sumCommand(first_data.data.as_slice(), second_data.data.as_slice());
+
+            let result_json = serde_json::json!({ "result": result_value });
+            std::fs::write(
+                output_path,
+                serde_json::to_string_pretty(&result_json).unwrap(),
+            )
+            .unwrap();
         }
         Some(("donothing", _)) => {
             println!("do nothing");
