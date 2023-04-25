@@ -1,44 +1,8 @@
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
-
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-include!("jsonParsing.rs");
-
-fn sumCommand(arr1: &[f64], arr2: &[f64]) -> f64 {
-    let mut result = Vec::with_capacity(arr1.len() + arr2.len());
-
-    result.extend_from_slice(&arr1);
-    result.extend_from_slice(&arr2);
-
-    let nativeSum: f64 = result.iter().sum();
-    println!("native sum: {}", nativeSum);
-
-    unsafe {
-        let size = arr1.len() / 2;
-        let a = allocACollection(size.try_into().unwrap());
-        let b = allocBCollection(size.try_into().unwrap());
-
-        for n in 0..size {
-            let mut element = a.data.offset(n.try_into().unwrap());
-            (*element).first = arr1[n * 2];
-            (*element).second = arr1[n * 2 + 1];
-            println!("A: {{ {} , {} }}", (*element).first, (*element).second);
-        }
-
-        for n in 0..size {
-            let mut element = b.data.offset(n.try_into().unwrap());
-            (*element).first = arr2[n * 2];
-            (*element).second = arr2[n * 2 + 1];
-            println!("B: {{ {} , {} }}", (*element).first, (*element).second);
-        }
-
-        let sumOfAAndB = sum(a, b);
-        println!("sum: {}", sumOfAAndB);
-
-        return sumOfAAndB;
-    }
-}
+pub(crate) mod commands;
+pub(crate) mod converting;
+pub(crate) mod json_parsing;
+pub(crate) mod native_wrapper;
+pub(crate) mod types;
 
 fn main() {
     println!("Hello, world!");
@@ -78,10 +42,10 @@ fn main() {
                 .get_one::<std::path::PathBuf>("second-data-path")
                 .expect("second-data-path not presented");
 
-            let first_data = parseDataFromFile(first_data_path);
-            let second_data = parseDataFromFile(second_data_path);
+            let a_collection = json_parsing::get_a_collection_from_file(first_data_path);
+            let b_collection = json_parsing::get_b_collection_from_file(second_data_path);
 
-            let result_value = sumCommand(first_data.data.as_slice(), second_data.data.as_slice());
+            let result_value = unsafe { commands::sum(&a_collection, &b_collection) };
 
             let result_json = serde_json::json!({ "result": result_value });
             std::fs::write(
