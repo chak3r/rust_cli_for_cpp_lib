@@ -9,8 +9,10 @@ pub struct Cli {
     // name: Option<String>,
     #[command(subcommand)]
     pub command: Commands,
-    #[arg(short, long, value_name = "FILE")]
+    #[arg(short, long, value_name = "FILE", global = true)]
     pub output_path: Option<PathBuf>,
+    #[arg(short, long, value_name = "FILE", global = true)]
+    pub error_path: Option<PathBuf>,
 }
 
 #[derive(Subcommand)]

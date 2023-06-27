@@ -30,7 +30,7 @@ fn main() {
                     .expect("second-data-path not presented"),
             );
 
-            let result_value = unsafe { commands::sum(&a_collection, &b_collection) };
+            let result_value = unsafe { commands::sum(a_collection, b_collection) };
 
             let result_json = serde_json::json!({ "result": result_value });
             std::fs::write(output, serde_json::to_string_pretty(&result_json).unwrap()).unwrap();
